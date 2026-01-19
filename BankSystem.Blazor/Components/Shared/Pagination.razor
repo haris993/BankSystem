@@ -1,5 +1,4 @@
 <nav aria-label="Pagination" class="d-flex justify-content-center align-items-center mt-5">
-
     <ul class="pagination mb-0">
         <li class="page-item @(_internalCurrentPage <= 1 ? "disabled" : string.Empty)">
             <button type="button" class="page-link" @onclick="() => ChangePage(_internalCurrentPage - 1)" disabled="@(_internalCurrentPage <= 1)">Previous</button>
@@ -23,6 +22,7 @@
             <button type="button" class="page-link" @onclick="() => ChangePage(_internalCurrentPage + 1)" disabled="@(_internalCurrentPage >= TotalPages)">Next</button>
         </li>
     </ul>
+
 </nav>
 
 @code {
@@ -38,9 +38,7 @@
 
     protected override void OnParametersSet()
     {
-        // keep internal size in sync with parent-provided PageSize
         _currentPageSize = PageSize > 0 ? PageSize : (_currentPageSize == 0 ? 10 : _currentPageSize);
-        // keep an internal current page so UI updates immediately when user clicks
         _internalCurrentPage = CurrentPage > 0 ? CurrentPage : 1;
     }
 
@@ -51,11 +49,9 @@
         page = Math.Max(1, Math.Min(page, TotalPages));
         if (page == _internalCurrentPage) return;
 
-        // update internal page immediately for responsive UI
         _internalCurrentPage = page;
         StateHasChanged();
 
-        // notify parent
         await OnPageChanged.InvokeAsync(page);
     }
 
@@ -69,7 +65,6 @@
         }
     }
 
-    // Return a compact page range (with -1 = ellipsis)
     private IEnumerable<int> GetPageRange()
     {
         var pages = new List<int>();

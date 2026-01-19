@@ -5,6 +5,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
 // Ensure trailing slash so relative paths concatenate correctly
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7103/") });
 builder.Services.AddScoped<BankAccountApiService>();
@@ -24,6 +27,8 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseStaticFiles();
+app.UseRouting();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
