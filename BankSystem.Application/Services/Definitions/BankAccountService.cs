@@ -35,8 +35,16 @@ namespace BankSystem.Application.Services.Definitions
 
             if (!string.IsNullOrWhiteSpace(query.Search))
                 data = data.Where(x =>
-                    x.ClientFirstName.Contains(query.Search) ||
-                    x.ClientLastName.Contains(query.Search));
+        EF.Functions.Like(x.ClientFirstName, query.Search) ||
+        EF.Functions.Like(x.ClientLastName, query.Search) ||
+        EF.Functions.Like(x.AccountNumber, query.Search) ||
+        EF.Functions.Like(x.IBAN, query.Search) ||
+        EF.Functions.Like(x.Email, query.Search) ||
+        EF.Functions.Like(x.PhoneNumber, query.Search) ||
+        EF.Functions.Like(x.Currency, query.Search) ||
+        EF.Functions.Like(x.AccountType, query.Search) ||
+        EF.Functions.Like(x.BranchCode, query.Search)
+    );
 
             var totalCount = await data.CountAsync();
 

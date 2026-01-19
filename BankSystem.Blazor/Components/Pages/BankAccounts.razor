@@ -86,6 +86,7 @@
     private string? Search { get; set; }
     private string? SelectedCurrency { get; set; }
     private string? SelectedStatus { get; set; }
+    private System.Timers.Timer? debounceTimer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,7 +96,23 @@
     private async Task OnSearchChanged(ChangeEventArgs e)
     {
         Search = e.Value?.ToString();
-        await LoadDataAsync(1);
+        debounceTimer?.Stop();
+        debounceTimer?.Dispose();
+
+        debounceTimer = new System.Timers.Timer(3000); 
+        debounceTimer.Elapsed += async (s, args) =>
+        {
+            debounceTimer.Stop();
+            debounceTimer.Dispose();
+            debounceTimer = null;
+
+            await InvokeAsync(async () =>
+            {
+                await LoadDataAsync(1);
+                StateHasChanged();
+            });
+        };
+        debounceTimer.Start();
     }
 
     private async Task OnCurrencyChanged(ChangeEventArgs e)
