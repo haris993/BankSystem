@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/API/">
+    <Project Path="BankSystem.API/BankSystem.API.csproj" />
+    <Project Path="BankSystem.Application/BankSystem.Application.csproj" />
+    <Project Path="BankSystem.Domain/BankSystem.Domain.csproj" />
+    <Project Path="BankSystem.Infrastructure/BankSystem.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/UI/">
+    <Project Path="BankSystem.Blazor/BankSystem.Blazor.csproj" />
+  </Folder>
+</Solution>

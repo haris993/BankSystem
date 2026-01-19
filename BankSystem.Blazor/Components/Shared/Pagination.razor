@@ -1,0 +1,94 @@
+<nav aria-label="Pagination" class="d-flex justify-content-center align-items-center mt-5">
+
+    <ul class="pagination mb-0">
+        <li class="page-item @(_internalCurrentPage <= 1 ? "disabled" : string.Empty)">
+            <button type="button" class="page-link" @onclick="() => ChangePage(_internalCurrentPage - 1)" disabled="@(_internalCurrentPage <= 1)">Previous</button>
+        </li>
+
+        @foreach (var p in GetPageRange())
+        {
+            if (p == -1)
+            {
+                <li class="page-item disabled"><button type="button" class="page-link" disabled>&hellip;</button></li>
+            }
+            else
+            {
+                <li class="page-item @(p == _internalCurrentPage ? "active" : string.Empty)">
+                    <button type="button" class="page-link" @onclick="() => ChangePage(p)">@p</button>
+                </li>
+            }
+        }
+
+        <li class="page-item @(_internalCurrentPage >= TotalPages ? "disabled" : string.Empty)">
+            <button type="button" class="page-link" @onclick="() => ChangePage(_internalCurrentPage + 1)" disabled="@(_internalCurrentPage >= TotalPages)">Next</button>
+        </li>
+    </ul>
+</nav>
+
+@code {
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public int TotalCount { get; set; }
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+    [Parameter] public EventCallback<int> OnPageSizeChanged { get; set; }
+
+    private readonly int[] PageSizes = new[] { 5, 10, 20, 50 };
+    private int _currentPageSize;
+    private int _internalCurrentPage;
+
+    protected override void OnParametersSet()
+    {
+        // keep internal size in sync with parent-provided PageSize
+        _currentPageSize = PageSize > 0 ? PageSize : (_currentPageSize == 0 ? 10 : _currentPageSize);
+        // keep an internal current page so UI updates immediately when user clicks
+        _internalCurrentPage = CurrentPage > 0 ? CurrentPage : 1;
+    }
+
+    private int TotalPages => _currentPageSize <= 0 ? 1 : Math.Max(1, (int)Math.Ceiling((double)TotalCount / _currentPageSize));
+
+    private async Task ChangePage(int page)
+    {
+        page = Math.Max(1, Math.Min(page, TotalPages));
+        if (page == _internalCurrentPage) return;
+
+        // update internal page immediately for responsive UI
+        _internalCurrentPage = page;
+        StateHasChanged();
+
+        // notify parent
+        await OnPageChanged.InvokeAsync(page);
+    }
+
+    private async Task ChangePageSize(ChangeEventArgs e)
+    {
+        if (int.TryParse(e?.Value?.ToString(), out var newSize) && newSize > 0)
+        {
+            if (newSize == _currentPageSize) return;
+            _currentPageSize = newSize;
+            await OnPageSizeChanged.InvokeAsync(newSize);
+        }
+    }
+
+    // Return a compact page range (with -1 = ellipsis)
+    private IEnumerable<int> GetPageRange()
+    {
+        var pages = new List<int>();
+        if (TotalPages <= 9)
+        {
+            for (int i = 1; i <= TotalPages; i++) pages.Add(i);
+            return pages;
+        }
+
+        pages.Add(1);
+
+        var left = Math.Max(2, _internalCurrentPage - 2);
+        var right = Math.Min(TotalPages - 1, _internalCurrentPage + 2);
+
+        if (left > 2) pages.Add(-1);
+        for (int i = left; i <= right; i++) pages.Add(i);
+        if (right < TotalPages - 1) pages.Add(-1);
+
+        pages.Add(TotalPages);
+        return pages;
+    }
+}

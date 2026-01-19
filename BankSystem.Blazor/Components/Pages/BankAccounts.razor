@@ -1,0 +1,186 @@
+﻿@page "/bank-accounts"
+@using BankSystem.Blazor.Components.Shared
+@using BankSystem.Blazor.Models
+@inject BankSystem.Blazor.Services.BankAccountApiService Api
+
+
+    <h3 class="text-center mt-5 mb-5">Racuni klijenata</h3>
+
+
+<div class="row mb-5">
+    <div class="col-md-3">
+        <input class="form-control" placeholder="Search..." @bind="Search" @bind:event="oninput" />
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" @bind="SelectedCurrency">
+            <option value="">All Currencies</option>
+            @foreach (var cur in Currencies)
+            {
+                <option value="@cur">@cur</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" @bind="SelectedStatus">
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+        </select>
+    </div>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Account #</th>
+            <th>Client</th>
+            <th>Balance</th>
+            <th>Currency</th>
+            <th>Type</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Accounts?.Items != null && Accounts.Items.Any())
+        {
+            @foreach (var acc in Accounts.Items)
+            {
+                <tr>
+                    <td>@acc.AccountNumber</td>
+                    <td>@acc.ClientName</td>
+                    <td>@acc.Balance.ToString("N2")</td>
+                    <td>@acc.Currency</td>
+                    <td>@acc.AccountType</td>
+                    <td>
+                        @if (acc.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="6" class="text-center">No accounts found.</td></tr>
+        }
+    </tbody>
+</table>
+
+<Pagination CurrentPage="Page"
+            PageSize="PageSize"
+            TotalCount="Accounts?.TotalCount ?? 0"
+            OnPageChanged="@OnPageChanged"
+            OnPageSizeChanged="@OnPageSizeChanged" />
+
+
+@code {
+    private PagedResult<BankAccountViewModel> Accounts = new();
+    private int Page = 1;
+    private int PageSize = 10;
+
+    
+
+    private List<string> Currencies { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync(Page);
+    }
+
+    // Called by Pagination component
+    private async Task OnPageChanged(int newPage)
+    {
+        Console.WriteLine($"[BankAccounts] OnPageChanged -> {newPage}");
+        await LoadDataAsync(newPage);
+    }
+
+    private async Task OnPageSizeChanged(int newPageSize)
+    {
+        Console.WriteLine($"[BankAccounts] OnPageSizeChanged -> {newPageSize}");
+        PageSize = newPageSize;
+        await LoadDataAsync(1);
+    }
+
+    private string? _search;
+    private string? Search
+    {
+        get => _search;
+        set
+        {
+            if (_search == value) return;
+            _search = value;
+            Console.WriteLine($"[BankAccounts] Search changed -> '{_search}'");
+            _ = LoadDataAsync(1);
+        }
+    }
+
+    private string? _selectedCurrency;
+    private string? SelectedCurrency
+    {
+        get => _selectedCurrency;
+        set
+        {
+            if (_selectedCurrency == value) return;
+            _selectedCurrency = value;
+            Console.WriteLine($"[BankAccounts] SelectedCurrency changed -> '{_selectedCurrency}'");
+            _ = LoadDataAsync(1);
+        }
+    }
+
+    private string? _selectedStatus;
+    private string? SelectedStatus
+    {
+        get => _selectedStatus;
+        set
+        {
+            if (_selectedStatus == value) return;
+            _selectedStatus = value;
+            Console.WriteLine($"[BankAccounts] SelectedStatus changed -> '{_selectedStatus}'");
+            _ = LoadDataAsync(1);
+        }
+    }
+
+    private async Task LoadDataAsync(int page)
+    {
+        // set the requested page (do not always reset to 1)
+        Page = Math.Max(1, page);
+
+        bool? isActive = SelectedStatus switch
+        {
+            "true" => true,
+            "false" => false,
+            _ => null
+        };
+
+        Console.WriteLine($"[BankAccounts] Loading page={Page} pageSize={PageSize} currency='{SelectedCurrency}' isActive={isActive} search='{Search}'");
+
+        try
+        {
+            Accounts = await Api.GetBankAccountsAsync(
+                page: Page,
+                pageSize: PageSize,
+                currency: SelectedCurrency,
+                isActive: isActive,
+                search: Search);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[BankAccounts] LoadDataAsync exception: {ex.Message}");
+            Accounts = new PagedResult<BankAccountViewModel>();
+        }
+
+        // Populate currency dropdown from returned items (quick client-side approach).
+        Currencies = Accounts.Items?.Select(a => a.Currency)
+            .Where(c => !string.IsNullOrEmpty(c))
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList() ?? new List<string>();
+
+        StateHasChanged();
+    }
+}
